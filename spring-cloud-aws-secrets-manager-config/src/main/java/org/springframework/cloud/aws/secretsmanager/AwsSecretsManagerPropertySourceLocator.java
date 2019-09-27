@@ -63,31 +63,7 @@ public class AwsSecretsManagerPropertySourceLocator implements PropertySourceLoc
 
 	@Override
 	public PropertySource<?> locate(Environment environment) {
-		if (!(environment instanceof ConfigurableEnvironment)) {
-			return null;
-		}
-
-		ConfigurableEnvironment env = (ConfigurableEnvironment) environment;
-
-		String appName = properties.getName();
-
-		if (appName == null) {
-			appName = env.getProperty("spring.application.name");
-		}
-
-		List<String> profiles = Arrays.asList(env.getActiveProfiles());
-
-		String prefix = this.properties.getPrefix();
-
-		String defaultContext = prefix + "/" + this.properties.getDefaultContext();
-		this.contexts.add(defaultContext);
-		addProfiles(this.contexts, defaultContext, profiles);
-
-		String baseContext = prefix + "/" + appName;
-		this.contexts.add(baseContext);
-		addProfiles(this.contexts, baseContext, profiles);
-
-		Collections.reverse(this.contexts);
+		this.contexts = getPropertySourceContexts(environment, properties);
 
 		CompositePropertySource composite = new CompositePropertySource(
 				"aws-secrets-manager");
@@ -113,6 +89,42 @@ public class AwsSecretsManagerPropertySourceLocator implements PropertySourceLoc
 		return composite;
 	}
 
+	private static List<String> getPropertySourceContexts(Environment environment,
+			AwsSecretsManagerProperties properties) {
+		if (!properties.getSecretNames().isEmpty()) {
+			return properties.getSecretNames();
+		}
+
+		if (!(environment instanceof ConfigurableEnvironment)) {
+			return new ArrayList<>();
+		}
+
+		ConfigurableEnvironment env = (ConfigurableEnvironment) environment;
+
+		String appName = properties.getName();
+
+		if (appName == null) {
+			appName = env.getProperty("spring.application.name");
+		}
+
+		ArrayList<String> contexts = new ArrayList<>();
+
+		List<String> profiles = Arrays.asList(env.getActiveProfiles());
+
+		String prefix = properties.getPrefix();
+
+		String defaultContext = prefix + "/" + properties.getDefaultContext();
+		contexts.add(defaultContext);
+		addProfiles(contexts, defaultContext, profiles, properties.getProfileSeparator());
+
+		String baseContext = prefix + "/" + appName;
+		contexts.add(baseContext);
+		addProfiles(contexts, baseContext, profiles, properties.getProfileSeparator());
+
+		Collections.reverse(contexts);
+		return contexts;
+	}
+
 	private AwsSecretsManagerPropertySource create(String context) {
 		AwsSecretsManagerPropertySource propertySource = new AwsSecretsManagerPropertySource(
 				context, this.smClient);
@@ -120,10 +132,10 @@ public class AwsSecretsManagerPropertySourceLocator implements PropertySourceLoc
 		return propertySource;
 	}
 
-	private void addProfiles(List<String> contexts, String baseContext,
-			List<String> profiles) {
+	private static void addProfiles(List<String> contexts, String baseContext,
+			List<String> profiles, String profileSeparator) {
 		for (String profile : profiles) {
-			contexts.add(baseContext + this.properties.getProfileSeparator() + profile);
+			contexts.add(baseContext + profileSeparator + profile);
 		}
 	}
 

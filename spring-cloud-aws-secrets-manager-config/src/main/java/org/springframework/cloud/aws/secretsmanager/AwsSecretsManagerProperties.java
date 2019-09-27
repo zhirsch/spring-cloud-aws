@@ -16,6 +16,9 @@
 
 package org.springframework.cloud.aws.secretsmanager;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
@@ -62,6 +65,13 @@ public class AwsSecretsManagerProperties {
 	 * Manager.
 	 */
 	private String name;
+
+	/**
+	 * The secret names from which to read properties. If non-empty, overrides the default
+	 * behavior of composing the secret names from "prefix", "defaultContext", and the
+	 * active Spring profiles.
+	 */
+	private List<String> secretNames = new ArrayList<>();
 
 	/** Is AWS Secrets Manager support enabled. */
 	private boolean enabled = true;
@@ -112,6 +122,14 @@ public class AwsSecretsManagerProperties {
 
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+
+	public List<String> getSecretNames() {
+		return secretNames;
+	}
+
+	public void setSecretNames(List<String> secretNames) {
+		this.secretNames = secretNames;
 	}
 
 }
